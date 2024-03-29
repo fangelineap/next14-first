@@ -1,6 +1,10 @@
 "use server"
 
-const { Post } = require("./models");
+import { revalidatePath } from 'next/cache';
+import { signIn, signOut } from './auth';
+import bcrypt from 'bcryptjs';
+
+const { Post, User } = require("./models");
 const { connectToDB } = require("./utils");
 
 export const addPost = async (formData) => {
@@ -14,6 +18,7 @@ export const addPost = async (formData) => {
 
     try {
         connectToDB();
+
         const newPost = new Post({
             title,
             desc,
@@ -28,7 +33,6 @@ export const addPost = async (formData) => {
         console.log(error);
         throw new Error(error);
     }
-    console.log('Hello');
 };
 
 export const deletePost = async (formData) => {
@@ -38,9 +42,64 @@ export const deletePost = async (formData) => {
         connectToDB();
         await Post.findByIdAndDelete(id);
         console.log('Deleted');
-        // revalidatePath('/blog');
+        revalidatePath('/blog');
     } catch (error) {
         console.log(error);
         throw new Error(error);
+    }
+}
+
+export const handleGithubLogin = async () => {
+    "use server";
+    await signIn("github");
+};
+
+export const handleLogout = async () => {
+    "use server";
+    await signOut();
+};
+
+export const register = async (prevState, formData) => {
+    const { username, email, password, confirmPassword, img } = Object.fromEntries(formData);
+
+    if(password !== confirmPassword) return { error: "Passwords do not match"};
+
+    try {
+        connectToDB();
+        
+        const user = await User.findOne({ username });
+
+        if(user) return { error: "Username already exist" };
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPass = await bcrypt.hash(password, salt);
+
+        const newUser = new User({
+            username,
+            email,
+            password: hashedPass,
+            img
+        });
+
+        await newUser.save();
+        console.log('Saved to db');
+
+        return { success: true };
+    } catch (error) {
+        console.log(error);
+        return { error: 'Something went wrong' };
+    }
+}
+
+export const login = async (prevState, formData) => {
+    const { username, password } = Object.fromEntries(formData);
+
+    try {
+        await signIn('credentials', { username, password });
+    } catch (error) {
+        if(error.message.includes("CredentialsSignin")) {
+            return { error: "Invalid username or password" };
+        }
+        throw error;
     }
 }
