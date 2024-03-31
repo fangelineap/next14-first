@@ -7,14 +7,14 @@ import bcrypt from 'bcryptjs';
 const { Post, User } = require("./models");
 const { connectToDB } = require("./utils");
 
-export const addPost = async (formData) => {
+export const addPost = async (prevState, formData) => {
     // single destructuring
     // const title = formData.get('title');
     // const desc = formData.get('desc');
     // const slug = formData.get('slug');
 
     // destructuring using fromEntries
-    const { title, desc, slug, userId } = Object.fromEntries(formData);
+    const { title, desc, slug, userId, img } = Object.fromEntries(formData);
 
     try {
         connectToDB();
@@ -23,11 +23,11 @@ export const addPost = async (formData) => {
             title,
             desc,
             slug,
-            userId
+            userId,
+            img
         });
 
         await newPost.save();
-        console.log('Saved to DB');
         revalidatePath('/blog');
     } catch (error) {
         console.log(error);
@@ -41,8 +41,48 @@ export const deletePost = async (formData) => {
     try {
         connectToDB();
         await Post.findByIdAndDelete(id);
-        console.log('Deleted');
         revalidatePath('/blog');
+    } catch (error) {
+        console.log(error);
+        throw new Error(error);
+    }
+}
+
+export const addUser = async (prevState, formData) => {
+    const { username, email, password, image, isAdmin } = Object.fromEntries(formData);
+
+    try {
+        connectToDB();
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPass = await bcrypt.hash(password, salt);
+
+        const newUser = new User({
+            username,
+            email,
+            password: hashedPass,
+            image,
+            isAdmin
+        });
+
+        await newUser.save();
+        revalidatePath('/blog');
+        revalidatePath('/admin');
+    } catch (error) {
+        console.log(error);
+        throw new Error(error);
+    }
+};
+
+export const deleteUser = async (formData) => {
+    const { id } = Object.fromEntries(formData);
+
+    try {
+        connectToDB();
+        await Post.deleteMany({ userId: id });
+        await User.findByIdAndDelete(id);
+        revalidatePath('/blog');
+        revalidatePath('/admin');
     } catch (error) {
         console.log(error);
         throw new Error(error);
@@ -82,7 +122,6 @@ export const register = async (prevState, formData) => {
         });
 
         await newUser.save();
-        console.log('Saved to db');
 
         return { success: true };
     } catch (error) {
@@ -95,7 +134,7 @@ export const login = async (prevState, formData) => {
     const { username, password } = Object.fromEntries(formData);
 
     try {
-        await signIn('credentials', { username, password });
+        await signIn("credentials", { username, password });
     } catch (error) {
         if(error.message.includes("CredentialsSignin")) {
             return { error: "Invalid username or password" };

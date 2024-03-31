@@ -62,13 +62,10 @@ const SinglePostPage = async ({ params }) => {
                     </Suspense>}
                     <div className={styles.detailText}>
                         <span className={styles.detailTitle}>Published</span>
-                        <span className={styles.detailValue}>{post.createdAt.toString().slice(4,16)}</span>
+                        <span className={styles.detailValue}>{post.createdAt.toString().slice(0,10)}</span>
                     </div>
                 </div>
-                <div className={styles.content}>
-                    {/* Lorem ipsum dolor sit amet consectetur adipisicing elit. Placeat veniam ea minus ipsa, quia nemo quibusdam quasi laborum. Animi excepturi quibusdam neque nemo iure commodi placeat molestiae, recusandae non aliquid! */}
-                    {post.desc}
-                </div>
+                <div className={styles.content}>{post.desc}</div>
             </div>
         </div>
     );

@@ -41,15 +41,6 @@ const BlogPage = async () => {
                     <PostCard post={post} />
                 </div>
             ))}
-            {/* <div className={styles.post}>
-                <PostCard />
-            </div>
-            <div className={styles.post}>
-                <PostCard />
-            </div>
-            <div className={styles.post}>
-                <PostCard />
-            </div> */}
         </div>
     );
 };

@@ -2,26 +2,22 @@ import NextAuth from "next-auth";
 import GitHub from "next-auth/providers/github";
 import { connectToDB } from "./utils";
 import { User } from "./models";
-import CredentialsProvider from 'next-auth/providers/credentials'
-import bcrypt from 'bcryptjs';
+import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+import { authConfig } from "./auth.config";
 
 const login = async (credentials) => {
     try {
-        console.log('creds');
-        console.log(credentials);
         connectToDB();
         const user = await User.findOne({ username: credentials.username });
 
-        console.log(user);
-        
-        if(!user) {
+        if (!user) {
             throw new Error("User does not exist.");
         }
 
         const isPassCorrect = await bcrypt.compare(credentials.password, user.password);
-        console.log(isPassCorrect);
 
-        if(!isPassCorrect) {
+        if (!isPassCorrect) {
             throw new Error("Wrong credentials.");
         }
 
@@ -30,9 +26,15 @@ const login = async (credentials) => {
         console.log(error);
         throw new Error("Failed to login..");
     }
-}
+};
 
-export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth({
+export const {
+    handlers: { GET, POST },
+    auth,
+    signIn,
+    signOut,
+} = NextAuth({
+    ...authConfig,
     providers: [
         GitHub({
             clientId: process.env.GITHUB_ID,
@@ -46,17 +48,17 @@ export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth({
                 } catch (error) {
                     return null;
                 }
-            }
-        })
+            },
+        }),
     ],
     callbacks: {
-        async signIn({user, account, profile}) {
-            if(account.provider === "github") {
+        async signIn({ user, account, profile }) {
+            if (account.provider === "github") {
                 connectToDB();
                 try {
                     const user = await User.findOne({ email: profile.email });
 
-                    if(!user) {
+                    if (!user) {
                         const newUser = new User({
                             username: profile.login,
                             email: profile.email,
@@ -69,9 +71,9 @@ export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth({
                     console.log(error);
                     return false;
                 }
-
-                return true;
             }
-        }
-    }
+            return true;
+        },
+        ...authConfig.callbacks,
+    },
 });
